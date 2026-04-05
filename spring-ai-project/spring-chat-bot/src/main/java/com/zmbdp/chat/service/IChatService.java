@@ -1,0 +1,49 @@
+package com.zmbdp.chat.service;
+
+
+import com.zmbdp.chat.domain.dto.ChatMessageDTO;
+import com.zmbdp.chat.domain.dto.ChatSessionDTO;
+
+import java.util.List;
+
+public interface IChatService {
+
+    /**
+     * 保存聊天会话
+     *
+     * @param chatId 聊天 id
+     * @param title  会话标题
+     */
+    void save(String chatId, String title);
+
+    /**
+     * 保存一条聊天消息
+     *
+     * @param chatId  聊天 id
+     * @param role    消息角色
+     * @param content 消息内容
+     */
+    void saveMessage(String chatId, String role, String content);
+
+    /**
+     * 根据聊天 id 删除会话
+     *
+     * @param chatId 聊天 id
+     */
+    void deleteByChatId(String chatId);
+
+    /**
+     * 获取所有会话
+     *
+     * @return 会话列表
+     */
+    List<ChatSessionDTO> getSessionHistory();
+
+    /**
+     * 获取会话历史记录
+     *
+     * @param chatId 聊天 id
+     * @return 历史记录
+     */
+    List<ChatMessageDTO> getMessageHistory(String chatId);
+}

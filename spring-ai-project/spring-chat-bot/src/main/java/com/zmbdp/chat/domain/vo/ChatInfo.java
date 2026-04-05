@@ -1,4 +1,4 @@
-package com.zmbdp.chat.entity;
+package com.zmbdp.chat.domain.vo;
 
 import lombok.Data;
 

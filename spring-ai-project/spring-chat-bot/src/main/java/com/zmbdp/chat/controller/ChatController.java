@@ -1,19 +1,19 @@
 package com.zmbdp.chat.controller;
 
-import com.zmbdp.chat.entity.ChatInfo;
-import com.zmbdp.chat.entity.MessageVO;
-import com.zmbdp.chat.repository.ChatHistoryRepository;
+import com.zmbdp.chat.domain.dto.ChatMessageDTO;
+import com.zmbdp.chat.domain.vo.MessageVO;
+import com.zmbdp.chat.domain.vo.ChatInfo;
+import com.zmbdp.chat.service.IChatService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.memory.ChatMemory;
+import org.springframework.ai.chat.messages.AssistantMessage;
 import org.springframework.ai.chat.messages.Message;
 import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.content.Media;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.util.MimeTypeUtils;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
 
 import java.net.URI;
@@ -41,37 +41,54 @@ public class ChatController {
      * 聊天记录
      */
     @Autowired
-    private ChatHistoryRepository memoryChatHistoryRepository;
+    private IChatService chatService;
 
     /**
-     * 聊天
+     * 聊天接口
+     *
+     * @param prompt 输入内容
+     * @param chatId 聊天 id
+     * @return 聊天结果
      */
     @RequestMapping(value = "/stream", produces = "text/html;charset=utf-8")
     public Flux<String> stream(String prompt, String chatId) throws Exception {
-        log.info("chatId: {}, prompt: {}", chatId, prompt);
+        String imageUrl = null;
+        log.info("chatId: {}, prompt: {}, imageUrl: {}", chatId, prompt, imageUrl);
+        syncHistoryToMemory(chatId);
+        chatService.save(chatId, prompt);
+        chatService.saveMessage(chatId, "user", prompt);
 
-        String imageUrl = "https://dashscope.oss-cn-beijing.aliyuncs.com/images/dog_and_girl.jpeg";
-        // 你自己的历史记录
-        memoryChatHistoryRepository.save(chatId, prompt);
-
+        Flux<String> contentFlux;
         if (imageUrl == null || imageUrl.isBlank()) {
-            return this.chatClient.prompt()
+            // 如果说没有图片，则使用普通方式进行聊天
+            contentFlux = this.chatClient.prompt()
                     .user(prompt)
+                    .advisors(advisor -> advisor.param(ChatMemory.CONVERSATION_ID, chatId))
+                    .stream()
+                    .content();
+        } else {
+            // 如果说有图片，则使用图片方式进行聊天
+            log.info("使用图片进行聊天, chatId: {}, prompt: {}, imageUrl: {}", chatId, prompt, imageUrl);
+            List<Media> mediaList = List.of(new Media(org.springframework.util.MimeTypeUtils.IMAGE_JPEG, new URI(imageUrl).toURL().toURI()));
+            // 构建用户提示词
+            UserMessage userMessage = UserMessage.builder()
+                    .text(prompt)
+                    .media(mediaList)
+                    .build();
+            contentFlux = this.chatClient.prompt(new Prompt(userMessage))
                     .advisors(advisor -> advisor.param(ChatMemory.CONVERSATION_ID, chatId))
                     .stream()
                     .content();
         }
 
-        List<Media> mediaList = List.of(new Media(MimeTypeUtils.IMAGE_JPEG, new URI(imageUrl).toURL().toURI()));
-        UserMessage userMessage = UserMessage.builder()
-                .text(prompt)
-                .media(mediaList)
-                .build();
-
-        return this.chatClient.prompt(new Prompt(userMessage))
-                .advisors(advisor -> advisor.param(ChatMemory.CONVERSATION_ID, chatId))
-                .stream()
-                .content();
+        StringBuilder assistantReply = new StringBuilder();
+        return contentFlux
+                .doOnNext(assistantReply::append)
+                .doOnComplete(() -> {
+                    if (!assistantReply.isEmpty()) {
+                        chatService.saveMessage(chatId, "assistant", assistantReply.toString());
+                    }
+                });
     }
 
     /**
@@ -80,38 +97,76 @@ public class ChatController {
      * @return 会话列表
      */
     @RequestMapping("/getChatIds")
-    public List<ChatInfo> getChatIds() {
-        return memoryChatHistoryRepository.getChats();
+    public List<ChatInfo> sessionHistory() {
+        return chatService.getSessionHistory()
+                .stream()
+                .map(dto -> new ChatInfo(dto.getId(), dto.getTitle()))
+                .collect(Collectors.toList());
     }
 
     /**
-     * 根据会话 id 获取会话记录
+     * 根据聊天 id 获取会话记录
      *
-     * @param chatId 会话 id
+     * @param chatId 聊天 id
      */
     @RequestMapping("/getChatHistory")
-    public List<MessageVO> getChatHistory(String chatId) {
+    public List<MessageVO> getMessageHistory(String chatId) {
         log.info("获取会话记录, chatId:{}", chatId);
-        List<Message> messages = chatMemory.get(chatId);
-        return messages.stream().map(MessageVO::new).collect(Collectors.toList());
+        return chatService.getMessageHistory(chatId)
+                .stream()
+                .map(MessageVO::new)
+                .collect(Collectors.toList());
     }
 
     /**
-     * 根据会话 id 删除会话
+     * 根据聊天 id 删除会话
      *
-     * @param chatId 会话 id
+     * @param chatId 聊天 id
      * @return 删除结果
      */
     @RequestMapping("/deleteChat")
-    public Boolean deleteChat(String chatId) {
+    public Boolean deleteByChatId(String chatId) {
         log.info("删除会话, chatId:{}", chatId);
         try {
-            memoryChatHistoryRepository.clearByChatId(chatId);
+            chatService.deleteByChatId(chatId);
             chatMemory.clear(chatId);
         } catch (Exception e) {
             log.error("删除会话失败, chatId:{}", chatId, e);
             return false;
         }
         return true;
+    }
+
+    /**
+     * 把已持久化的历史记录同步到 Spring AI 内存中
+     *
+     * @param chatId 聊天 id
+     */
+    private void syncHistoryToMemory(String chatId) {
+        List<Message> currentMessages = chatMemory.get(chatId);
+        if (currentMessages != null && !currentMessages.isEmpty()) {
+            return;
+        }
+        List<ChatMessageDTO> history = chatService.getMessageHistory(chatId);
+        if (history.isEmpty()) {
+            return;
+        }
+        List<Message> messages = history.stream()
+                .map(this::buildMessage)
+                .collect(Collectors.toList());
+        chatMemory.add(chatId, messages);
+    }
+
+    /**
+     * 持久化消息转 Spring AI Message
+     *
+     * @param chatMessageDTO 历史消息
+     * @return Message
+     */
+    private Message buildMessage(ChatMessageDTO chatMessageDTO) {
+        if ("assistant".equals(chatMessageDTO.getRole())) {
+            return new AssistantMessage(chatMessageDTO.getContent());
+        }
+        return new UserMessage(chatMessageDTO.getContent());
     }
 }

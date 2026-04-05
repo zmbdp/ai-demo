@@ -1,6 +1,15 @@
 //let baseUrl = 'http://localhost:3000';
 let baseUrl = '';
+const USER_ID_STORAGE_KEY = 'chat_test_user_id';
 $(document).ready(function() {
+    const $loginScreen = $('#loginScreen');
+    const $chatApp = $('#chatApp');
+    const $mockUserId = $('#mockUserId');
+    const $mockLoginBtn = $('#mockLoginBtn');
+    const $presetUserBtn = $('.preset-user-btn');
+    const $switchUserBtn = $('#switchUserBtn');
+    const $currentUserIdText = $('#currentUserIdText');
+    const $chatHeaderUser = $('#chatHeaderUser');
     const $userInput = $('#userInput');
     const $chatMessages = $('#chatMessages');
     const $sendBtn = $('.send-btn');
@@ -9,6 +18,7 @@ $(document).ready(function() {
     const $chatContainer = $('.chat-container');
     const $actionButtons = $('.action-buttons');
     const $bottomLine = $('.bottom-line');
+    let currentUserId = localStorage.getItem(USER_ID_STORAGE_KEY) || '';
     let currentChatId = null; // 当前会话ID
     let replyingSessionId = [];
     let contentWidth = 0;
@@ -17,10 +27,61 @@ $(document).ready(function() {
         return 'chat-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
     }
 
+    function requireUserId() {
+        if (currentUserId) {
+            return true;
+        }
+        showLoginScreen();
+        return false;
+    }
+
+    function getQueryString(params) {
+        return new URLSearchParams(params).toString();
+    }
+
+    function updateUserDisplay() {
+        const text = currentUserId || '未设置';
+        $currentUserIdText.text(text);
+        $chatHeaderUser.text(`当前 userId：${text}`);
+    }
+
+    function showLoginScreen() {
+        $loginScreen.removeClass('hidden');
+        $chatApp.addClass('hidden');
+        $mockUserId.val(currentUserId);
+        setTimeout(() => $mockUserId.trigger('focus'), 0);
+    }
+
+    function showChatApp() {
+        $loginScreen.addClass('hidden');
+        $chatApp.removeClass('hidden');
+        updateUserDisplay();
+        loadChatHistory();
+        setTimeout(() => $userInput.trigger('focus'), 0);
+    }
+
+    function loginWithUserId(userId) {
+        currentUserId = String(userId).trim();
+        if (!currentUserId) {
+            alert('请输入 userId');
+            return;
+        }
+        localStorage.setItem(USER_ID_STORAGE_KEY, currentUserId);
+        currentChatId = null;
+        replyingSessionId = [];
+        $chatMessages.empty();
+        $historyList.empty();
+        updateUserDisplay();
+        showChatApp();
+    }
+
     // 加载历史会话列表
     async function loadChatHistory() {
+        if (!requireUserId()) {
+            return;
+        }
         try {
-            const response = await fetch(baseUrl + '/chat/getChatIds');
+            const response = await fetch(baseUrl + `/chat/getChatIds?${getQueryString({ userId: currentUserId })}`);
             if (!response.ok) {
                 throw new Error('获取历史会话失败');
             }
@@ -43,8 +104,11 @@ $(document).ready(function() {
 
     // 加载特定会话的聊天记录
     async function loadChatMessages(chatId) {
+        if (!requireUserId()) {
+            return;
+        }
         try {
-            const response = await fetch(baseUrl + `/chat/getChatHistory?chatId=${chatId}`);
+            const response = await fetch(baseUrl + `/chat/getChatHistory?${getQueryString({ chatId, userId: currentUserId })}`);
             if (!response.ok) {
                 throw new Error('获取会话内容失败');
             }
@@ -101,7 +165,7 @@ $(document).ready(function() {
     // 删除会话
     function deleteChatFun(chatId) {
         return new Promise((resolve, reject) => {
-            fetch(baseUrl + `/chat/deleteChat?chatId=${chatId}`)
+            fetch(baseUrl + `/chat/deleteChat?${getQueryString({ chatId, userId: currentUserId })}`)
             .then(response => {
                 if (!response.ok) {
                     throw new Error('删除会话失败');
@@ -143,19 +207,25 @@ $(document).ready(function() {
     }
 
     // 绑定新建会话按钮事件
-    $('#newChatBtn').on('click', createNewChat);
+    $('#newChatBtn').on('click', function() {
+        if (!requireUserId()) {
+            return;
+        }
+        createNewChat();
+    });
 
     // 绑定快捷键 Ctrl+K
     $(document).on('keydown', function(e) {
         if (e.ctrlKey && e.key === 'k') {
             e.preventDefault();
+            if (!requireUserId()) {
+                return;
+            }
             createNewChat();
         }
     });
 
-    // 初始化：加载历史会话列表
-    loadChatHistory();
-
+    // 初始化显示登录或聊天页
     // 自动调整文本区域高度
     function adjustTextareaHeight() {
         $userInput.css('height', 'auto');
@@ -246,6 +316,9 @@ $(document).ready(function() {
 
     // 处理发送消息
     async function handleSend() {
+        if (!requireUserId()) {
+            return;
+        }
         const message = $userInput.val().trim();
         if (!message) return;
 
@@ -272,7 +345,7 @@ $(document).ready(function() {
                 $(`.history-item#${currentChatId}`).find('.itemText').text(message);
             }
             replyingSessionId.push(currentChatId);
-            const response = await fetch(baseUrl + `/chat/stream?prompt=${encodeURIComponent(message)}&chatId=${currentChatId}`, {
+            const response = await fetch(baseUrl + `/chat/stream?${getQueryString({ prompt: message, chatId: currentChatId, userId: currentUserId })}`, {
                 method: 'GET',
                 headers: {
                     'Accept': 'text/html'
@@ -367,6 +440,34 @@ $(document).ready(function() {
     }
 
     // 事件监听器
+    function submitLogin() {
+        const userId = $mockUserId.val().trim();
+        if (!userId) {
+            $mockUserId.trigger('focus');
+            return;
+        }
+        loginWithUserId(userId);
+    }
+
+    $mockLoginBtn.on('click', submitLogin);
+
+    $mockUserId.on('keydown', function(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            submitLogin();
+        }
+    });
+
+    $presetUserBtn.on('click', function() {
+        const userId = $(this).data('user-id');
+        $mockUserId.val(userId);
+        submitLogin();
+    });
+
+    $switchUserBtn.on('click', function() {
+        showLoginScreen();
+    });
+
     $userInput.on('input', function (e) {
         adjustTextareaHeight();
         if (!e.target.value) {
@@ -400,11 +501,18 @@ $(document).ready(function() {
                 $chatMessages.empty();
             }
         })
-        // 关闭弹窗
         $deleteSession[0].style.display = 'none';
     })
+
     window.onresize = throttle(function() {
         contentWidth = $('.bot-message')[0]?.offsetWidth - 57;
         document.body.setAttribute('style', `--contentWidth:${contentWidth}px`);
     }, 100);
+
+    updateUserDisplay();
+    if (currentUserId) {
+        showChatApp();
+    } else {
+        showLoginScreen();
+    }
 });

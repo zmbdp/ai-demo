@@ -46,12 +46,12 @@ public class ChatServiceImpl implements IChatService {
      * 如果聊天已经存在但标题为空, 则补充标题
      * 如果聊天标题已存在, 则不覆盖
      *
+     * @param userId 用户 id
      * @param chatId 聊天 id
      * @param title  聊天标题
      */
     @Override
-    public void save(String chatId, String title) {
-        Long userId = 34234234324234L;
+    public void save(Long userId, String chatId, String title) {
         ChatSessionDTO chatSessionDTO = chatSessionService.getByChatId(chatId, userId);
         // 如果已存在, 并且还有标题啥的, 就直接返回
         if (chatSessionDTO != null && chatSessionDTO.getTitle() != null && !chatSessionDTO.getTitle().isBlank()) {
@@ -71,14 +71,15 @@ public class ChatServiceImpl implements IChatService {
     /**
      * 保存一条聊天消息
      *
-     * @param chatId  聊天 id
-     * @param role    消息角色
-     * @param content 消息内容
+     * @param userId    用户 id
+     * @param chatId    聊天 id
+     * @param role      消息角色
+     * @param content   消息内容
+     * @param mediaUrls 用户消息中的图片等 URL
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void saveMessage(String chatId, String role, String content, List<String> mediaUrls) {
-        Long userId = 34234234324234L;
+    public void saveMessage(Long userId, String chatId, String role, String content, List<String> mediaUrls) {
         ChatMessage chatMessage = new ChatMessage();
         chatMessage.setChatId(chatId);
         chatMessage.setUserId(userId);
@@ -93,12 +94,12 @@ public class ChatServiceImpl implements IChatService {
     /**
      * 删除聊天记录
      *
+     * @param userId 用户 id
      * @param chatId 聊天 id
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void deleteByChatId(String chatId) {
-        Long userId = 34234234324234L;
+    public void deleteByChatId(Long userId, String chatId) {
         chatSessionMapper.delete(new LambdaQueryWrapper<ChatSession>()
                 .eq(ChatSession::getId, chatId)
                 .eq(ChatSession::getUserId, userId));
@@ -110,23 +111,23 @@ public class ChatServiceImpl implements IChatService {
     /**
      * 获取所有聊天记录
      *
+     * @param userId 用户 id
      * @return 聊天记录
      */
     @Override
-    public List<ChatSessionDTO> getSessionHistory() {
-        Long userId = 34234234324234L;
+    public List<ChatSessionDTO> getSessionHistory(Long userId) {
         return buildChatInfoList(userId);
     }
 
     /**
      * 获取聊天历史记录
      *
+     * @param userId 用户 id
      * @param chatId 聊天 id
      * @return 历史记录
      */
     @Override
-    public List<ChatMessageDTO> getMessageHistory(String chatId) {
-        Long userId = 34234234324234L;
+    public List<ChatMessageDTO> getMessageHistory(Long userId, String chatId) {
         return chatMessageMapper.selectList(
                         new LambdaQueryWrapper<ChatMessage>()
                                 .eq(ChatMessage::getChatId, chatId)

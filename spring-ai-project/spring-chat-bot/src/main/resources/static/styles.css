@@ -4,10 +4,31 @@
     box-sizing: border-box;
 }
 
+:root {
+    --bg-main: #f3efe6;
+    --bg-panel: rgba(255, 252, 245, 0.86);
+    --bg-panel-strong: #fffaf1;
+    --text-main: #2b2216;
+    --text-soft: #6f5d49;
+    --line-soft: rgba(91, 70, 43, 0.16);
+    --accent: #8c3b2a;
+    --accent-deep: #5e2419;
+    --shadow-soft: 0 24px 60px rgba(61, 34, 19, 0.14);
+}
+
 body {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-    background-color: #ffffff;
+    font-family: "Microsoft YaHei", "PingFang SC", sans-serif;
+    background:
+        radial-gradient(circle at top left, rgba(140, 59, 42, 0.18), transparent 32%),
+        radial-gradient(circle at bottom right, rgba(185, 145, 84, 0.2), transparent 28%),
+        linear-gradient(135deg, #efe6d6 0%, #f7f2e8 38%, #efe7da 100%);
+    color: var(--text-main);
     height: 100vh;
+    overflow: hidden;
+}
+
+.hidden {
+    display: none !important;
 }
 
 .mjx-chtml{
@@ -22,18 +43,136 @@ body {
         font-style: initial;
     }
 }
+
+.app-shell {
+    height: 100vh;
+}
+
+.login-screen {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+}
+
+.login-card {
+    width: min(480px, 100%);
+    padding: 32px;
+    border-radius: 28px;
+    background: rgba(255, 250, 241, 0.92);
+    border: 1px solid rgba(116, 79, 38, 0.12);
+    box-shadow: var(--shadow-soft);
+    backdrop-filter: blur(16px);
+}
+
+.login-badge {
+    display: inline-flex;
+    padding: 6px 12px;
+    border-radius: 999px;
+    background: rgba(140, 59, 42, 0.12);
+    color: var(--accent-deep);
+    font-size: 12px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 16px;
+}
+
+.login-card h1 {
+    font-size: 34px;
+    margin-bottom: 12px;
+}
+
+.login-desc,
+.login-tip {
+    color: var(--text-soft);
+    line-height: 1.7;
+}
+
+.login-desc {
+    margin-bottom: 20px;
+}
+
+.preset-users {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 22px;
+}
+
+.preset-user-btn,
+.switch-user-btn,
+.mock-login-btn {
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.preset-user-btn {
+    padding: 10px 14px;
+    border-radius: 14px;
+    background: rgba(140, 59, 42, 0.08);
+    color: var(--accent-deep);
+}
+
+.preset-user-btn:hover,
+.switch-user-btn:hover,
+.mock-login-btn:hover {
+    transform: translateY(-1px);
+}
+
+.login-form {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.login-form label {
+    font-weight: 600;
+}
+
+.login-form input {
+    height: 48px;
+    border-radius: 14px;
+    border: 1px solid rgba(91, 70, 43, 0.18);
+    padding: 0 14px;
+    font-size: 16px;
+    outline: none;
+    background: #fffdf8;
+}
+
+.login-form input:focus {
+    border-color: rgba(140, 59, 42, 0.55);
+    box-shadow: 0 0 0 4px rgba(140, 59, 42, 0.08);
+}
+
+.mock-login-btn {
+    height: 48px;
+    border-radius: 14px;
+    background: linear-gradient(135deg, var(--accent) 0%, #a04b38 100%);
+    color: #fff;
+    font-size: 16px;
+    margin-top: 8px;
+}
+
+.login-tip {
+    margin-top: 16px;
+    font-size: 13px;
+}
+
 .chat-container {
     display: flex;
     height: 100vh;
 }
 
 .sidebar {
-    width: 240px;
-    background-color: #f7f7f8;
-    padding: 20px 10px;
+    width: 260px;
+    background: var(--bg-panel);
+    backdrop-filter: blur(18px);
+    padding: 20px 12px;
     display: flex;
     flex-direction: column;
-    border-right: 1px solid #e5e5e5;
+    border-right: 1px solid var(--line-soft);
 }
 
 .logo {
@@ -41,10 +180,37 @@ body {
 }
 
 .logo-img {
-    border-radius: 8px;
+    border-radius: 12px;
     width: 138px;
 }
 
+.mock-user-panel {
+    padding: 14px;
+    border-radius: 16px;
+    background: rgba(140, 59, 42, 0.08);
+    margin-bottom: 16px;
+}
+
+.mock-user-label {
+    font-size: 12px;
+    color: var(--text-soft);
+    margin-bottom: 8px;
+}
+
+.mock-user-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    font-weight: 600;
+}
+
+.switch-user-btn {
+    padding: 8px 12px;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.75);
+    color: var(--accent-deep);
+}
 
 .menu-items {
     display: flex;
@@ -56,16 +222,17 @@ body {
     display: flex;
     align-items: center;
     padding: 5px 8px;
-    border-radius: 8px;
+    border-radius: 10px;
     cursor: pointer;
     color: #333;
     transition: background-color 0.2s;
 }
+
 .menu-item#newChatBtn{
-    border: 1px solid rgba(0, 0, 0, .13);
-    background: #ffffff;
+    border: 1px solid rgba(91, 70, 43, 0.13);
+    background: rgba(255, 255, 255, 0.82);
     padding: 5px 8px;
-    border-radius: 12px;
+    border-radius: 14px;
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -73,11 +240,13 @@ body {
     margin-bottom: 14px;
     transition: box-shadow .2s ease-in-out, background-color .2s ease-in-out;
 }
+
 .menu-item#newChatBtn:hover{
-    box-shadow: 0 3px 10px rgba(0, 0, 0, .1);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, .08);
 }
+
 .menu-item:hover {
-    background-color: #e5e5e5;
+    background-color: rgba(140, 59, 42, 0.08);
 }
 
 .menu-item .icon {
@@ -85,20 +254,24 @@ body {
     line-height: 16px;
     margin-right: 8px;
 }
+
 .menu-item .icon svg{
     width: 18px;
     height: 18px;
     vertical-align: middle;
     margin-right: 0;
 }
+
 .menu-item .text{
     line-height: 30px;
 }
+
 .menu-item .shortcut {
     margin-left: auto;
     font-size: 12px;
     color: #666;
 }
+
 .menu-item .shortcut .key{
     padding: 0 4px;
     min-width: 20px;
@@ -112,10 +285,6 @@ body {
     text-align: center;
     border-radius: 4px;
 }
-.menu-item.secondary {
-    color: #666;
-    font-size: 14px;
-}
 
 .main-content {
     flex: 1;
@@ -127,7 +296,8 @@ body {
 .chat-header {
     padding: 20px;
     text-align: center;
-    border-bottom: 1px solid #e5e5e5;
+    border-bottom: 1px solid var(--line-soft);
+    background: rgba(255, 252, 245, 0.5);
 }
 
 .chat-header h1 {
@@ -135,36 +305,47 @@ body {
     font-weight: bold;
 }
 
+.chat-header p {
+    margin-top: 8px;
+    color: var(--text-soft);
+    font-size: 14px;
+}
+
 .chat-messages {
     flex: 1;
     overflow-y: scroll;
     padding: 20px;
 }
+
 .chat-messages::-webkit-scrollbar {
     display: none;
 }
+
 .chat-messages .bottom-line{
     width: 100%;
     height: 1px;
     background-color: transparent;
 }
+
 .chat-input-container {
     padding: 20px;
-    border-top: 1px solid #e5e5e5;
+    border-top: 1px solid var(--line-soft);
 }
 
 .input-wrapper {
-    background-color: #fff;
-    border: 1px solid #e5e5e5;
-    border-radius: 12px;
+    background-color: rgba(255,255,255,0.86);
+    border: 1px solid var(--line-soft);
+    border-radius: 18px;
     padding: 12px;
     box-shadow: 0 5px 16px -4px rgba(0, 0, 0, .07);
     transition: 300ms;
 }
+
 .input-wrapper:has(:focus-within) {
-    border-color: #c5c5c5;
-    box-shadow: 0 5px 16px -4px rgba(0, 0, 0, .15);
+    border-color: rgba(140, 59, 42, 0.35);
+    box-shadow: 0 10px 30px rgba(94, 36, 25, 0.12);
 }
+
 #userInput {
     width: 100%;
     min-height: 24px;
@@ -175,29 +356,18 @@ body {
     font-size: 14px;
     line-height: 1.5;
     margin-bottom: 10px;
+    background: transparent;
+    color: var(--text-main);
 }
+
 #userInput::placeholder {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    color: #9b8b78;
 }
+
 .input-buttons {
     display: flex;
     justify-content: flex-end;
     align-items: center;
-}
-
-.model-select {
-    padding: 6px 12px;
-    border-radius: 16px;
-    border: 1px solid #e5e5e5;
-    background-color: transparent;
-    color: #666;
-    cursor: pointer;
-    font-size: 12px;
-}
-
-.action-buttons {
-    display: flex;
-    gap: 8px;
 }
 
 .action-buttons {
@@ -211,9 +381,11 @@ body {
     justify-content: center;
     transition: 100ms;
 }
+
 .btn-is-active{
     background-color: rgba(0,0,0,1);
 }
+
 .send-btn {
     width: 100%;
     height: 100%;
@@ -223,15 +395,15 @@ body {
     align-items: center;
     justify-content: center;
 }
+
 .send-btn .icon{
     width: 24px;
     height: 24px;
     vertical-align: middle;
 }
 
-/* 历史会话列表样式 */
 .history-list {
-    max-height: calc(100vh - 270px);
+    max-height: calc(100vh - 330px);
     overflow-y: auto;
     margin-top: 10px;
     padding: 0 10px;
@@ -241,7 +413,7 @@ body {
     width: 100%;
     padding: 8px 12px;
     cursor: pointer;
-    border-radius: 6px;
+    border-radius: 10px;
     font-size: 14px;
     color: #666666;
     margin-bottom: 4px;
@@ -254,13 +426,15 @@ body {
         display: none;
     }
 }
+
 .ellipse{
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
 }
+
 .history-item:hover {
-    background-color: #e5e5e5;
+    background-color: rgba(140, 59, 42, 0.08);
     .sessionOperates{
         display: block;
         font-size: 20px;
@@ -278,11 +452,10 @@ body {
 }
 
 .history-item.active {
-    background-color: rgba(0, 0, 0, .05);
+    background-color: rgba(140, 59, 42, 0.12);
     color: #000000;
 }
 
-/* 滚动条样式 */
 .history-list::-webkit-scrollbar {
     width: 4px;
 }
@@ -300,7 +473,6 @@ body {
     background: #666;
 }
 
-/*deleteDia*/
 .delete-session{
     display: none;
     position: absolute;
@@ -314,6 +486,7 @@ body {
     background-color: #ffffff;
     box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
 }
+
 .delete-session .operate{
     margin-bottom: 4px;
     padding: 8px;
@@ -321,7 +494,6 @@ body {
     align-items: center;
     min-width: 100px;
     color: inherit;
-    -webkit-text-decoration: none;
     text-decoration: none;
     border-radius: 6px;
     cursor: pointer;
@@ -334,15 +506,15 @@ body {
         vertical-align: baseline;
     }
 }
-.delete-session .edit{
-    color: #000000;
-}
+
 .delete-session .delete{
     color: #ff3849;
 }
+
 .delete-session .operate:last-child{
     margin-bottom: 0;
 }
+
 .delete-session .operate:hover{
     background-color: #f0f0f0;
 }

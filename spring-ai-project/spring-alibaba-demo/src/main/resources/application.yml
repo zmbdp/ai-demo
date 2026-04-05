@@ -1,0 +1,17 @@
+server:
+  port: 8082
+spring:
+  application:
+    name: spring-alibaba-demo
+  ai:
+    dashscope:
+      api-key: ${DASHSCOPE_API_KEY}
+#      api-key: sk-b674cefe2a404fc2b2533d02ec656ecd # bite ak
+      chat:
+        options:
+          model: qwen-vl-max-latest
+          multi-model: true
+logging:
+  pattern:
+    console: "%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+    file: "%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"

@@ -6,9 +6,21 @@ spring:
     name: spring-ai-demo
   ai:
     openai:
-      api-key: sk-1b789e86c8ba439f838b6786cdcc6590
+      # OpenAI 配置信息
+#      api-key: ${OPENAI_API_KEY}
+#      base-url: https://api.openai.com # 默认是这个可以不用写
+
+      # Deep Seek AI 配置信息
+      api-key: ${DEEPSEEK_API_KEY}
       base-url: https://api.deepseek.com
       chat:
         options:
           model: deepseek-chat
           temperature: 0.7
+
+logging:
+  level:
+    org.springframework.ai.chat.client.advisor: debug
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"

@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <title>SSE</title>
+  </head>
+  <body>
+    <div id="sse"></div>
+    <script>
+      let sse = new EventSource("/sse/data");
+      sse.addEventListener("foo", (event) => {
+        document.getElementById("sse").innerHTML = event.data;
+      });
+      sse.addEventListener("end", (event) => {
+        sse.close();
+      })
+    </script>
+  </body>
+</html>

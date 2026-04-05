@@ -1,8 +1,8 @@
 package com.zmbdp.chat.controller;
 
 import com.zmbdp.chat.domain.dto.ChatMessageDTO;
-import com.zmbdp.chat.domain.vo.MessageVO;
 import com.zmbdp.chat.domain.vo.ChatInfo;
+import com.zmbdp.chat.domain.vo.MessageVO;
 import com.zmbdp.chat.service.IChatService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
@@ -13,10 +13,14 @@ import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.content.Media;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.util.MimeType;
+import org.springframework.util.MimeTypeUtils;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 import reactor.core.publisher.Flux;
 
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -44,6 +48,23 @@ public class ChatController {
     private IChatService chatService;
 
     /**
+     * 按 URL 后缀粗略推断图片 MIME，供 Spring AI {@link Media} 使用。
+     */
+    private static MimeType mimeTypeForImageUrl(String url) {
+        String lower = url.toLowerCase();
+        if (lower.endsWith(".png")) {
+            return MimeTypeUtils.IMAGE_PNG;
+        }
+        if (lower.endsWith(".gif")) {
+            return MimeTypeUtils.IMAGE_GIF;
+        }
+        if (lower.endsWith(".webp")) {
+            return MimeTypeUtils.parseMimeType("image/webp");
+        }
+        return MimeTypeUtils.IMAGE_JPEG;
+    }
+
+    /**
      * 聊天接口
      *
      * @param prompt 输入内容
@@ -52,11 +73,14 @@ public class ChatController {
      */
     @RequestMapping(value = "/stream", produces = "text/html;charset=utf-8")
     public Flux<String> stream(String prompt, String chatId) throws Exception {
-        String imageUrl = null;
+        String imageUrl = prompt.contains("oss") ? "https://dashscope.oss-cn-beijing.aliyuncs.com/images/dog_and_girl.jpeg" : null;
         log.info("chatId: {}, prompt: {}, imageUrl: {}", chatId, prompt, imageUrl);
         syncHistoryToMemory(chatId);
         chatService.save(chatId, prompt);
-        chatService.saveMessage(chatId, "user", prompt);
+        // 带图时持久化图片 URL，否则重启后无法从库中恢复多模态消息
+        List<String> userMediaUrls = (imageUrl == null || imageUrl.isBlank()) ? null : List.of(imageUrl.trim());
+        chatService.saveMessage(chatId, "user", prompt, userMediaUrls);
+
 
         Flux<String> contentFlux;
         if (imageUrl == null || imageUrl.isBlank()) {
@@ -69,7 +93,7 @@ public class ChatController {
         } else {
             // 如果说有图片，则使用图片方式进行聊天
             log.info("使用图片进行聊天, chatId: {}, prompt: {}, imageUrl: {}", chatId, prompt, imageUrl);
-            List<Media> mediaList = List.of(new Media(org.springframework.util.MimeTypeUtils.IMAGE_JPEG, new URI(imageUrl).toURL().toURI()));
+            List<Media> mediaList = List.of(new Media(mimeTypeForImageUrl(imageUrl), new URI(imageUrl.trim()).toURL().toURI()));
             // 构建用户提示词
             UserMessage userMessage = UserMessage.builder()
                     .text(prompt)
@@ -86,7 +110,7 @@ public class ChatController {
                 .doOnNext(assistantReply::append)
                 .doOnComplete(() -> {
                     if (!assistantReply.isEmpty()) {
-                        chatService.saveMessage(chatId, "assistant", assistantReply.toString());
+                        chatService.saveMessage(chatId, "assistant", assistantReply.toString(), null);
                     }
                 });
     }
@@ -166,6 +190,27 @@ public class ChatController {
     private Message buildMessage(ChatMessageDTO chatMessageDTO) {
         if ("assistant".equals(chatMessageDTO.getRole())) {
             return new AssistantMessage(chatMessageDTO.getContent());
+        }
+        List<String> urls = chatMessageDTO.getMediaUrls();
+        if (urls != null && !urls.isEmpty()) {
+            List<Media> mediaList = new ArrayList<>();
+            for (String url : urls) {
+                if (url == null || url.isBlank()) {
+                    continue;
+                }
+                String trimmed = url.trim();
+                try {
+                    mediaList.add(new Media(mimeTypeForImageUrl(trimmed), new URI(trimmed).toURL().toURI()));
+                } catch (Exception e) {
+                    log.warn("历史消息中的媒体地址无效，已跳过: {}", trimmed, e);
+                }
+            }
+            if (!mediaList.isEmpty()) {
+                return UserMessage.builder()
+                        .text(chatMessageDTO.getContent())
+                        .media(mediaList)
+                        .build();
+            }
         }
         return new UserMessage(chatMessageDTO.getContent());
     }

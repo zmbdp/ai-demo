@@ -9,6 +9,7 @@ import com.zmbdp.chat.mapper.ChatMessageMapper;
 import com.zmbdp.chat.mapper.ChatSessionMapper;
 import com.zmbdp.chat.service.IChatService;
 import com.zmbdp.chat.service.IChatSessionService;
+import com.zmbdp.chat.utils.JsonUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -76,13 +77,16 @@ public class ChatServiceImpl implements IChatService {
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void saveMessage(String chatId, String role, String content) {
+    public void saveMessage(String chatId, String role, String content, List<String> mediaUrls) {
         Long userId = 34234234324234L;
         ChatMessage chatMessage = new ChatMessage();
         chatMessage.setChatId(chatId);
         chatMessage.setUserId(userId);
         chatMessage.setRole(role);
         chatMessage.setContent(content);
+        if (mediaUrls != null && !mediaUrls.isEmpty()) {
+            chatMessage.setMediaUrls(JsonUtil.classToJson(mediaUrls));
+        }
         chatMessageMapper.insert(chatMessage);
     }
 
@@ -129,7 +133,7 @@ public class ChatServiceImpl implements IChatService {
                                 .eq(ChatMessage::getUserId, userId)
                                 .orderByAsc(ChatMessage::getId)
                 ).stream()
-                .map(message -> new ChatMessageDTO(message.getRole(), message.getContent()))
+                .map(ChatMessageDTO::fromEntity)
                 .collect(Collectors.toList());
     }
 

@@ -1,5 +1,6 @@
 package com.zmbdp.chat.controller;
 
+import com.alibaba.cloud.ai.dashscope.chat.DashScopeChatOptions;
 import com.zmbdp.chat.domain.dto.ChatMessageDTO;
 import com.zmbdp.chat.domain.vo.ChatInfo;
 import com.zmbdp.chat.domain.vo.MessageVO;
@@ -35,6 +36,9 @@ public class ChatController {
      */
     @Autowired
     private ChatClient chatClient;
+
+    @Autowired
+    private DashScopeChatOptions chatOptions;
 
     /**
      * 会话记录
@@ -93,8 +97,8 @@ public class ChatController {
 
         Flux<String> contentFlux;
         if (imageUrl == null || imageUrl.isBlank()) {
-            contentFlux = this.chatClient.prompt()
-                    .user(prompt)
+            contentFlux = this.chatClient.prompt(new Prompt(prompt, chatOptions))
+//                    .user(prompt)
                     .advisors(advisor -> advisor.param(ChatMemory.CONVERSATION_ID, conversationId))
                     .stream()
                     .content();
@@ -105,7 +109,7 @@ public class ChatController {
                     .text(prompt)
                     .media(mediaList)
                     .build();
-            contentFlux = this.chatClient.prompt(new Prompt(userMessage))
+            contentFlux = this.chatClient.prompt(new Prompt(userMessage, chatOptions))
                     .advisors(advisor -> advisor.param(ChatMemory.CONVERSATION_ID, conversationId))
                     .stream()
                     .content();

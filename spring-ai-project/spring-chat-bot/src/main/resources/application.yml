@@ -15,10 +15,11 @@ spring:
 #          temperature: 0.7
     dashscope:
       api-key: ${DASHSCOPE_API_KEY}
-      chat:
-        options:
-          model: qwen-vl-max-latest
-          multi-model: true
+#      chat:
+#        options:
+#          model: qwen-vl-max-latest
+#          multi-model: true
+      read-timeout: 120000
 logging:
   level:
     org.springframework.ai.chat.client.advisor: debug
